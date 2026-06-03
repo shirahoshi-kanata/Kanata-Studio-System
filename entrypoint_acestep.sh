@@ -1,10 +1,6 @@
 #!/bin/bash
 set -e
 echo "[INFO] KSS Fast-Boot Entrypoint Started (AceStep)"
-if [ -n "$RCLONE_CONF_B64" ]; then
-    mkdir -p ~/.config/rclone
-    echo "$RCLONE_CONF_B64" | base64 -d > ~/.config/rclone/rclone.conf
-fi
 echo "[INFO] Mounting AceStep model..."
 mkdir -p /workspace/ComfyUI/models/checkpoints
 rclone mount r2:kss-storage/acestep /workspace/ComfyUI/models/checkpoints --vfs-cache-mode full --daemon
