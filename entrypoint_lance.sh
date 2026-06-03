@@ -6,7 +6,8 @@ if [[ -n "$PUBLIC_KEY" ]]; then
     chmod 700 /root/.ssh
     chmod 600 /root/.ssh/authorized_keys
 fi
-/usr/sbin/sshd
+mkdir -p /var/run/sshd
+service ssh start
 echo "[INFO] Starting Robust KSS Entrypoint"
 
 (
