@@ -1,39 +1,40 @@
-FROM runpod/base:0.4.2-cuda12.1.1
+FROM runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04
+
 # ==========================================================
-# KSS (Kanata Studio System) Base Docker Image
+# KSS (Kanata Studio System) Fast-Boot Docker Image
 # ==========================================================
-# This image contains the necessary tools (rclone, python, ffmpeg)
-# but DOES NOT contain the massive model weights.
-# Models will be dynamically pulled from R2 upon container start.
-# ==========================================================
-# Install basic dependencies
+
+# 1. 依存関係のインストール
 RUN apt-get update && apt-get install -y \
-    wget \
-    curl \
-    git \
-    unzip \
-    ffmpeg \
-    libgl1-mesa-glx fuse3 \
+    wget curl git unzip ffmpeg libgl1-mesa-glx fuse3 \
     && rm -rf /var/lib/apt/lists/*
-# Install rclone for R2/GDrive integration
+
+# 2. rcloneのインストール
 RUN curl https://rclone.org/install.sh | bash
-# Setup Python environment (RunPod base already has python, but let's ensure pip is updated)
+
+# 3. Pythonパッケージの更新
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
-# Install required AI Python packages (e.g. for HiDream/Lance/AceStep)
-# Note: Specific requirements can be loaded later, but common ones are here.
-RUN pip install --no-cache-dir \
-    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 \
-    transformers \
-    diffusers \
-    accelerate \
-    gradio \
-    huggingface_hub
-# Create workspace directory
+RUN pip install --no-cache-dir transformers diffusers accelerate gradio huggingface_hub
+
+# 4. WebUIの事前焼き込み (Bake)
 WORKDIR /workspace
-# Add our custom entrypoint script
+
+# 4-1. ComfyUI & ACE-Step
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git /workspace/ComfyUI
+RUN cd /workspace/ComfyUI/custom_nodes && \
+    git clone https://github.com/StartHua/ComfyUI-AudioTools.git && \
+    git clone https://github.com/StartHua/ComfyUI_MusicTools.git && \
+    git clone https://github.com/StartHua/ComfyUI_ACE-Step.git
+
+# 4-2. HiDream
+RUN git clone https://github.com/HiDream-ai/HiDream-O1-Image.git /workspace/HiDream-O1
+
+# 4-3. Lance
+RUN git clone https://github.com/bytedance/Lance.git /workspace/Lance
+
+# 5. エントリポイントの設定
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-# The entrypoint handles the dynamic pulling of models from R2
 ENTRYPOINT ["/entrypoint.sh"]
-# Default command (can be overridden by RunPod to start Jupyter or ComfyUI)
+
 CMD ["sleep", "infinity"]
