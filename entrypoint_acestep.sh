@@ -1,4 +1,11 @@
 #!/bin/bash
+# Inject RunPod SSH Public Key
+if [[ -n "$PUBLIC_KEY" ]]; then
+    mkdir -p /root/.ssh
+    echo "$PUBLIC_KEY" >> /root/.ssh/authorized_keys
+    chmod 700 /root/.ssh
+    chmod 600 /root/.ssh/authorized_keys
+fi
 /usr/sbin/sshd
 echo "[INFO] Starting Robust KSS Entrypoint"
 
