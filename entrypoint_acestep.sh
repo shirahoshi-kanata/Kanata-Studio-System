@@ -1,4 +1,8 @@
 #!/bin/bash
+/usr/sbin/sshd
+echo "[INFO] Starting Robust KSS Entrypoint"
+
+(
 set -e
 echo "[INFO] KSS Fast-Boot Entrypoint Started (AceStep)"
 echo "[INFO] Mounting AceStep model..."
@@ -17,4 +21,7 @@ for i in {1..30}; do
     sleep 5
 done
 echo "[INFO] Setup complete. Waiting indefinitely..."
-/usr/sbin/sshd -D
+) > /workspace/boot_setup.log 2>&1 &
+
+echo "[INFO] Boot setup is running in background. Check /workspace/boot_setup.log for details."
+sleep infinity
