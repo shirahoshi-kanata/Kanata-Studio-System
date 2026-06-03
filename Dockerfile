@@ -33,6 +33,7 @@ RUN git clone https://github.com/HiDream-ai/HiDream-O1-Image.git /workspace/HiDr
 RUN git clone https://github.com/bytedance/Lance.git /workspace/Lance
 
 # 5. エントリポイントの設定
+COPY kanata_studio_ui.py /workspace/kanata_studio_ui.py
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
