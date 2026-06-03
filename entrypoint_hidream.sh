@@ -8,4 +8,4 @@ echo "[INFO] Starting HiDream WebUI..."
 cd /workspace/HiDream-O1
 nohup python app.py --port 7860 > /workspace/hidream_ui.log 2>&1 &
 echo "[INFO] Setup complete. Waiting indefinitely..."
-sleep infinity
+/usr/sbin/sshd -D
