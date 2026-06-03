@@ -1,4 +1,8 @@
 #!/bin/bash
+/usr/sbin/sshd
+echo "[INFO] Starting Robust KSS Entrypoint"
+
+(
 set -e
 echo "[INFO] KSS Fast-Boot Entrypoint Started (HiDream)"
 echo "[INFO] Mounting HiDream model..."
@@ -8,4 +12,7 @@ echo "[INFO] Starting HiDream WebUI..."
 cd /workspace/HiDream-O1
 nohup python app.py --port 7860 > /workspace/hidream_ui.log 2>&1 &
 echo "[INFO] Setup complete. Waiting indefinitely..."
-/usr/sbin/sshd -D
+) > /workspace/boot_setup.log 2>&1 &
+
+echo "[INFO] Boot setup is running in background. Check /workspace/boot_setup.log for details."
+sleep infinity
