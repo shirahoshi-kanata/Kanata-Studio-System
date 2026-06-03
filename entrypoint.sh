@@ -1,35 +1,46 @@
 #!/bin/bash
 set -e
-echo "=========================================="
-echo " KSS AI Pipeline - Fast Boot Entrypoint"
-echo "=========================================="
 
-echo "[INFO] Configuring Rclone for Cloudflare R2..."
-mkdir -p ~/.config/rclone
-cat <<EOF > ~/.config/rclone/rclone.conf
-[r2]
-type = s3
-provider = Cloudflare
-access_key_id = f4541e83ebc10be90f4a7aed8b9a8977
-secret_access_key = 28da6cd8950e088696d158593b4596879afbd5cdb4859738db858e7928b6f84d
-endpoint = https://b1726c7e40c73181a9d4f4447c9ee2f0.r2.cloudflarestorage.com
-acl = private
-EOF
-echo "[INFO] Rclone configured successfully."
+echo "[INFO] KSS Fast-Boot Entrypoint Started"
 
-# モデルのR2直付けマウントとWebUI起動
-if [ "$RUN_MODEL" = "HiDream" ]; then
+# 1. R2の認証情報セットアップ
+if [ -n "$RCLONE_CONF_B64" ]; then
+    echo "[INFO] Decoding RCLONE_CONF_B64..."
+    mkdir -p ~/.config/rclone
+    echo "$RCLONE_CONF_B64" | base64 -d > ~/.config/rclone/rclone.conf
+else
+    echo "[WARNING] RCLONE_CONF_B64 is not set!"
+fi
+
+# 2. 実行モデルごとのマウントおよび起動処理
+if [ "$RUN_MODEL" = "AceStep" ]; then
+    echo "[INFO] Mounting AceStep model..."
+    mkdir -p /workspace/ComfyUI/models/checkpoints
+    rclone mount r2:kss-storage/acestep /workspace/ComfyUI/models/checkpoints --vfs-cache-mode full --daemon
+    
+    echo "[INFO] Starting ComfyUI backend on port 6006..."
+    cd /workspace/ComfyUI
+    nohup python main.py --port 6006 > /workspace/comfyui_backend.log 2>&1 &
+    
+    echo "[INFO] Waiting for ComfyUI to become ready..."
+    for i in {1..30}; do
+        if curl -s http://localhost:6006 > /dev/null; then
+            echo "[INFO] ComfyUI ready! Starting Kanata Studio UI (Gradio)..."
+            nohup python /workspace/kanata_studio_ui.py > /workspace/acestep_ui.log 2>&1 &
+            break
+        fi
+        sleep 5
+    done
+    
+elif [ "$RUN_MODEL" = "HiDream" ]; then
     echo "[INFO] Mounting HiDream model..."
     mkdir -p /workspace/HiDream-O1/models
     rclone mount r2:kss-storage/hidream /workspace/HiDream-O1/models --vfs-cache-mode full --daemon
     
     echo "[INFO] Starting HiDream WebUI..."
     cd /workspace/HiDream-O1
-    export HIDREAM_HOST=0.0.0.0
-    export HIDREAM_PORT=7860
-    export HIDREAM_MODEL_TYPE=dev
-    python app.py &
-
+    python webui.py --port 7860 &
+    
 elif [ "$RUN_MODEL" = "Lance" ]; then
     echo "[INFO] Mounting Lance model..."
     mkdir -p /workspace/Lance/models
@@ -37,23 +48,12 @@ elif [ "$RUN_MODEL" = "Lance" ]; then
     
     echo "[INFO] Starting Lance WebUI..."
     cd /workspace/Lance
-    python lance_gradio.py &
-
-elif [ "$RUN_MODEL" = "AceStep" ]; then
-    echo "[INFO] Mounting AceStep model..."
-    mkdir -p /workspace/ComfyUI/models/checkpoints
-    rclone mount r2:kss-storage/acestep /workspace/ComfyUI/models/checkpoints --vfs-cache-mode full --daemon
+    python app.py --port 8000 &
     
-    echo "[INFO] Starting ComfyUI for AceStep..."
-    cd /workspace/ComfyUI
-    python main.py --port 6006 &
-
-elif [ "$RUN_MODEL" = "ALL" ]; then
-    echo "[INFO] Mounting ALL models..."
-    mkdir -p /workspace/models
-    rclone mount r2:kss-storage /workspace/models --vfs-cache-mode full --daemon
+else
+    echo "[WARNING] Unknown or missing RUN_MODEL variable. Sleeping."
 fi
 
-echo "[INFO] System initialization complete. Handing over to CMD."
-echo "=========================================="
-exec "$@"
+# コンテナが終了しないよう待機
+echo "[INFO] Setup complete. Waiting indefinitely..."
+sleep infinity
