@@ -13,4 +13,4 @@ else
     nohup python app.py --port 8000 > /workspace/lance_ui.log 2>&1 &
 fi
 echo "[INFO] Setup complete. Waiting indefinitely..."
-sleep infinity
+/usr/sbin/sshd -D
