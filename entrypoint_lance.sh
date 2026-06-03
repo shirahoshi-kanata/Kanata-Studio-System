@@ -1,4 +1,8 @@
 #!/bin/bash
+/usr/sbin/sshd
+echo "[INFO] Starting Robust KSS Entrypoint"
+
+(
 set -e
 echo "[INFO] KSS Fast-Boot Entrypoint Started (Lance)"
 echo "[INFO] Mounting Lance model..."
@@ -13,4 +17,7 @@ else
     nohup python app.py --port 8000 > /workspace/lance_ui.log 2>&1 &
 fi
 echo "[INFO] Setup complete. Waiting indefinitely..."
-/usr/sbin/sshd -D
+) > /workspace/boot_setup.log 2>&1 &
+
+echo "[INFO] Boot setup is running in background. Check /workspace/boot_setup.log for details."
+sleep infinity
