@@ -22,9 +22,9 @@ WORKDIR /workspace
 # 4-1. ComfyUI & ACE-Step
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git /workspace/ComfyUI
 RUN cd /workspace/ComfyUI/custom_nodes && \
-    git clone https://github.com/StartHua/ComfyUI-AudioTools.git && \
-    git clone https://github.com/StartHua/ComfyUI_MusicTools.git && \
-    git clone https://github.com/StartHua/ComfyUI_ACE-Step.git
+    (git clone https://github.com/StartHua/ComfyUI-AudioTools.git || true) && \
+    (git clone https://github.com/StartHua/ComfyUI_MusicTools.git || true) && \
+    (git clone https://github.com/StartHua/ComfyUI_ACE-Step.git || true)
 
 # 4-2. HiDream
 RUN git clone https://github.com/HiDream-ai/HiDream-O1-Image.git /workspace/HiDream-O1
