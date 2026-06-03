@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 echo "=========================================="
-echo " KSS AI Pipeline - Docker Container Start"
+echo " KSS AI Pipeline - Fast Boot Entrypoint"
 echo "=========================================="
-# 1. Generate rclone configuration dynamically
+
 echo "[INFO] Configuring Rclone for Cloudflare R2..."
 mkdir -p ~/.config/rclone
 cat <<EOF > ~/.config/rclone/rclone.conf
@@ -16,25 +16,44 @@ endpoint = https://b1726c7e40c73181a9d4f4447c9ee2f0.r2.cloudflarestorage.com
 acl = private
 EOF
 echo "[INFO] Rclone configured successfully."
-# 2. Dynamic Model Pulling (zero egress cost from R2 to RunPod)
-# Depending on the RUN_MODEL environment variable, we pull the specific model.
-# If RUN_MODEL is not set, we skip to save time.
+
+# モデルのR2直付けマウントとWebUI起動
 if [ "$RUN_MODEL" = "HiDream" ]; then
-    echo "[INFO] Mounting HiDream model from R2..."
-    rclone mount r2:kss-storage/HiDream /workspace/models/HiDream --vfs-cache-mode full --daemon
+    echo "[INFO] Mounting HiDream model..."
+    mkdir -p /workspace/HiDream-O1/models
+    rclone mount r2:kss-storage/hidream /workspace/HiDream-O1/models --vfs-cache-mode full --daemon
+    
+    echo "[INFO] Starting HiDream WebUI..."
+    cd /workspace/HiDream-O1
+    export HIDREAM_HOST=0.0.0.0
+    export HIDREAM_PORT=7860
+    export HIDREAM_MODEL_TYPE=dev
+    python app.py &
+
 elif [ "$RUN_MODEL" = "Lance" ]; then
-    echo "[INFO] Mounting Lance model from R2..."
-    rclone mount r2:kss-storage/lance /workspace/models/Lance --vfs-cache-mode full --daemon
+    echo "[INFO] Mounting Lance model..."
+    mkdir -p /workspace/Lance/models
+    rclone mount r2:kss-storage/lance /workspace/Lance/models --vfs-cache-mode full --daemon
+    
+    echo "[INFO] Starting Lance WebUI..."
+    cd /workspace/Lance
+    python lance_gradio.py &
+
 elif [ "$RUN_MODEL" = "AceStep" ]; then
-    echo "[INFO] Mounting AceStep model from R2..."
-    rclone mount r2:kss-storage/acestep /workspace/models/AceStep --vfs-cache-mode full --daemon
+    echo "[INFO] Mounting AceStep model..."
+    mkdir -p /workspace/ComfyUI/models/checkpoints
+    rclone mount r2:kss-storage/acestep /workspace/ComfyUI/models/checkpoints --vfs-cache-mode full --daemon
+    
+    echo "[INFO] Starting ComfyUI for AceStep..."
+    cd /workspace/ComfyUI
+    python main.py --port 6006 &
+
 elif [ "$RUN_MODEL" = "ALL" ]; then
-    echo "[INFO] Mounting ALL models from R2..."
+    echo "[INFO] Mounting ALL models..."
+    mkdir -p /workspace/models
     rclone mount r2:kss-storage /workspace/models --vfs-cache-mode full --daemon
-else
-    echo "[INFO] RUN_MODEL not specified or set to None. Skipping model mount."
 fi
+
 echo "[INFO] System initialization complete. Handing over to CMD."
 echo "=========================================="
-# Execute the CMD passed to the container (e.g. sleep infinity, jupyter, etc.)
 exec "$@"
