@@ -17,4 +17,4 @@ for i in {1..30}; do
     sleep 5
 done
 echo "[INFO] Setup complete. Waiting indefinitely..."
-sleep infinity
+/usr/sbin/sshd -D
