@@ -1,4 +1,4 @@
-FROM runpod/base:0.4.2-cuda12.1.1
+FROM runpod/base:0.4.0-cuda11.8.0
 
 # ==========================================================
 # KSS (Kanata Studio System) Base Docker Image
