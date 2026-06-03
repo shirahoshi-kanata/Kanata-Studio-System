@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # Inject RunPod SSH Public Key
 if [[ -n "$PUBLIC_KEY" ]]; then
     mkdir -p /root/.ssh
@@ -6,10 +7,12 @@ if [[ -n "$PUBLIC_KEY" ]]; then
     chmod 700 /root/.ssh
     chmod 600 /root/.ssh/authorized_keys
 fi
-mkdir -p /var/run/sshd
-service ssh start
-echo "[INFO] Starting Robust KSS Entrypoint"
 
+# Create privilege separation dir and start sshd in background
+mkdir -p /var/run/sshd
+/usr/sbin/sshd
+
+echo "[INFO] Starting Robust KSS Entrypoint"
 (
 set -e
 echo "[INFO] KSS Fast-Boot Entrypoint Started (Lance)"
@@ -26,6 +29,5 @@ else
 fi
 echo "[INFO] Setup complete. Waiting indefinitely..."
 ) > /workspace/boot_setup.log 2>&1 &
-
 echo "[INFO] Boot setup is running in background. Check /workspace/boot_setup.log for details."
 sleep infinity
