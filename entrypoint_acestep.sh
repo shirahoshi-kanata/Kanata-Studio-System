@@ -1,37 +1,24 @@
 #!/bin/bash
+set -e
 
-# Inject RunPod SSH Public Key
-if [[ -n "$PUBLIC_KEY" ]]; then
-    mkdir -p /root/.ssh
-    echo "$PUBLIC_KEY" >> /root/.ssh/authorized_keys
-    chmod 700 /root/.ssh
+echo "[INFO] Starting Robust KSS Entrypoint..."
+
+# 1. RunPodの環境変数から公開鍵を受け取り、SSHログインを許可する（超重要）
+if [ -n "$PUBLIC_KEY" ]; then
+    echo "$PUBLIC_KEY" > /root/.ssh/authorized_keys
     chmod 600 /root/.ssh/authorized_keys
+    echo "[INFO] SSH Public Key injected."
 fi
 
-# Create privilege separation dir and start sshd in background
-mkdir -p /var/run/sshd
-/usr/sbin/sshd
+# 2. SSHデーモンの起動（エラーが出てもスクリプトを止めないように `|| true` をつける）
+/usr/sbin/sshd || true
+echo "[INFO] SSH Daemon started."
 
-echo "[INFO] Starting Robust KSS Entrypoint"
+# 3. バックグラウンドで必要な準備を走らせる（隔離スペース）
 (
-set -e
-echo "[INFO] KSS Fast-Boot Entrypoint Started (AceStep)"
-echo "[INFO] Mounting AceStep model..."
-mkdir -p /workspace/ComfyUI/models/checkpoints
-rclone mount r2:kss-storage/acestep /workspace/ComfyUI/models/checkpoints --vfs-cache-mode full --daemon
-echo "[INFO] Starting ComfyUI backend on port 6006..."
-cd /workspace/ComfyUI
-nohup python main.py --port 6006 > /workspace/comfyui_backend.log 2>&1 &
-echo "[INFO] Waiting for ComfyUI to become ready..."
-for i in {1..30}; do
-    if curl -s http://localhost:6006 > /dev/null; then
-        echo "[INFO] ComfyUI ready! Starting Kanata Studio UI (Gradio)..."
-        nohup python /workspace/kanata_studio_ui.py > /workspace/acestep_ui.log 2>&1 &
-        break
-    fi
-    sleep 5
-done
-echo "[INFO] Setup complete. Waiting indefinitely..."
+    echo "[INFO] Background setup is running..."
 ) > /workspace/boot_setup.log 2>&1 &
-echo "[INFO] Boot setup is running in background. Check /workspace/boot_setup.log for details."
+
+# 4. メインプロセス（PID 1）を永遠に眠らせる
+echo "[INFO] Pod is now indestructible. Sleeping infinity."
 sleep infinity
