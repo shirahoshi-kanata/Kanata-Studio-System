@@ -5,8 +5,3 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install system dependencies including rclone and fuse
 RUN apt-get update -qq &&     apt-get install -y -qq git ffmpeg curl dos2unix fuse unzip wget openssh-server &&     curl -O https://downloads.rclone.org/rclone-current-linux-amd64.zip &&     unzip -q rclone-current-linux-amd64.zip &&     cp rclone-*-linux-amd64/rclone /usr/bin/ &&     chmod 755 /usr/bin/rclone &&     rm -rf rclone-* &&     rm -rf /var/lib/apt/lists/*
 
-# Install PyTorch 2.5.1 (Requirement for flex_attention in Lance)
-RUN pip install --no-cache-dir torch==2.5.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-
-# Pre-install Lance dependencies to speed up boot time
-RUN git clone https://github.com/bytedance/Lance.git /tmp/Lance &&     cd /tmp/Lance &&     if [ -f "requirements.txt" ]; then pip install --no-cache-dir -r requirements.txt; fi &&     cd / &&     rm -rf /tmp/Lance
